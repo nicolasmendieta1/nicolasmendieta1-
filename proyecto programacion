@@ -1,1 +1,352 @@
 \Users\Usuario\PyCharmMiscProject\script.py 
+
+conexion = sqlite3.connect('proyecto programacion.db')
+cursor = conexion.cursor()
+st.title("Admin")
+
+
+opcion = st.selectbox("Seleccione: ", ["Empleados", "Especies", "Clientes", "Ventas"])
+
+if opcion == "Empleados":
+    filas = cursor.execute('''
+        SELECT id_empleado, nombre, apellido, cedula, email FROM empleado 
+    ''')
+    lista_nombres, lista_ids, lista_apellidos, lista_cedula, lista_emails = [], [], [], [], []
+    for fila in filas:
+        lista_ids.append(fila[0])
+        lista_nombres.append(fila[1])
+        lista_apellidos.append(fila[2])
+        lista_cedula.append(fila[3])
+        lista_emails.append(fila[4])
+
+    df = pd.DataFrame({
+        "Id": lista_ids,
+        "Nombre": lista_nombres,
+        "Apellido": lista_apellidos,
+        "Cedula": lista_cedula,
+        "Email": lista_emails
+    })
+    st.dataframe(df)
+
+    with st.expander("nuevo empleado"):
+        with st.form("form_nuevo_empleado"):
+            nombre = st.text_input("Nombre")
+            apellido = st.text_input("Apellido")
+            cedula = st.text_input("Cédula")
+            email = st.text_input("Email")
+            submit = st.form_submit_button("Agregar")
+
+            if submit:
+                if nombre and apellido and cedula and email:
+                    cursor.execute(
+                        "INSERT INTO empleado (nombre, apellido, cedula, email) VALUES (?, ?, ?, ?)",
+                        (nombre, apellido, cedula, email)
+                    )
+                    conexion.commit()
+                    st.success("Empleado agregado de forma exitosa.")
+                    st.experimental_rerun()
+                else:
+                    st.warning("Todos los campos son obligatorios.")
+
+    with st.expander("Eliminar empleado"):
+        with st.form("form_eliminar_empleado"):
+            empleado_a_borrar = st.selectbox("Seleccionar empleado a eliminar", lista_nombres)
+            submit = st.form_submit_button("Eliminar")
+            if submit:
+                empleado_id = lista_ids[lista_nombres.index(empleado_a_borrar)]
+                cursor.execute("DELETE FROM empleado WHERE id_empleado = ?", (empleado_id,))
+                conexion.commit()
+                st.success("Empleado eliminado.")
+                st.experimental_rerun()
+
+    with st.expander("Modificar empleado"):
+        with st.form("form_modificar_empleado"):
+            empleado_a_modificar = st.selectbox("Seleccionar empleado a modificar", lista_nombres, key="modificar")
+
+            if empleado_a_modificar:
+                idx = lista_nombres.index(empleado_a_modificar)
+                empleado_id = lista_ids[idx]
+
+                nuevo_nombre = st.text_input("Nuevo nombre", value=lista_nombres[idx])
+                nuevo_apellido = st.text_input("Nuevo apellido", value=lista_apellidos[idx])
+                nuevo_cedula = st.text_input("Nueva cédula", value=lista_cedula[idx])
+                nuevo_email = st.text_input("Nuevo email", value=lista_emails[idx])
+
+                submit = st.form_submit_button("Modificar")
+
+                if submit:
+                    if nuevo_nombre and nuevo_apellido and nuevo_cedula and nuevo_email:
+                        cursor.execute('''
+                            UPDATE empleado 
+                            SET nombre = ?, apellido = ?, cedula = ?, email = ?
+                            WHERE id_empleado = ?
+                        ''', (nuevo_nombre, nuevo_apellido, nuevo_cedula, nuevo_email, empleado_id))
+                        conexion.commit()
+                        st.success("Empleado modificado de forma exitosa.")
+                        st.experimental_rerun()
+                    else:
+                        st.warning("Todos los campos son obligatorios.")
+
+elif opcion == "Especies":
+    filas = cursor.execute('''
+        SELECT id_especie, nombre_cientifico, nombre_comun FROM especie 
+    ''')
+    lista_ids, lista_nombre_cientifico, lista_nombre_comun = [], [], []
+    for fila in filas:
+        lista_ids.append(fila[0])
+        lista_nombre_cientifico.append(fila[1])
+        lista_nombre_comun.append(fila[2])
+
+    df = pd.DataFrame({
+        "Id": lista_ids,
+        "Nombre Científico": lista_nombre_cientifico,
+        "Nombre Común": lista_nombre_comun
+    })
+    st.dataframe(df)
+
+    with st.expander("Agregar nueva especie"):
+        with st.form("form_nueva_especie"):
+            nombre_cientifico = st.text_input("Nombre científico")
+            nombre_comun = st.text_input("Nombre común")
+            submit = st.form_submit_button("Agregar")
+
+            if submit:
+                if nombre_cientifico:
+                    cursor.execute(
+                        "INSERT INTO especie (nombre_cientifico, nombre_comun) VALUES (?, ?)",
+                        (nombre_cientifico, nombre_comun if nombre_comun else None)
+                    )
+                    conexion.commit()
+                    st.success("Especie agregada de forma exitosa.")
+                    st.experimental_rerun()
+                else:
+                    st.warning("El nombre científico es obligatorio.")
+
+    with st.expander("Eliminar especie"):
+        with st.form("form_eliminar_especie"):
+            especie_a_borrar = st.selectbox("Seleccionar especie que quieras eliminar", lista_nombre_cientifico)
+            submit = st.form_submit_button("Eliminar")
+            if submit:
+                especie_id = lista_ids[lista_nombre_cientifico.index(especie_a_borrar)]
+                cursor.execute("DELETE FROM especie WHERE id_especie = ?", (especie_id,))
+                conexion.commit()
+                st.success("Especie eliminada correctamente.")
+                st.experimental_rerun()
+
+    with st.expander("Modificar especie"):
+        with st.form("form_modificar_especie"):
+            especie_a_modificar = st.selectbox("Seleccionar especie a modificar", lista_nombre_cientifico,
+                                               key="modificar_especie")
+
+            if especie_a_modificar:
+                idx = lista_nombre_cientifico.index(especie_a_modificar)
+                especie_id = lista_ids[idx]
+
+                nuevo_nombre_cientifico = st.text_input("Nuevo nombre científico", value=lista_nombre_cientifico[idx])
+                nuevo_nombre_comun = st.text_input("Nuevo nombre común", value=lista_nombre_comun[idx])
+
+                submit = st.form_submit_button("Modificar")
+
+                if submit:
+                    if nuevo_nombre_cientifico and nuevo_nombre_comun:
+                        cursor.execute('''
+                            UPDATE especie 
+                            SET nombre_cientifico = ?, nombre_comun = ?
+                            WHERE id_especie = ?
+                        ''', (nuevo_nombre_cientifico, nuevo_nombre_comun, especie_id))
+                        conexion.commit()
+                        st.success("Especie modificada correctamente.")
+                        st.experimental_rerun()
+                    else:
+                        st.warning("Todos los campos son obligatorios.")
+
+elif opcion == "Cliente":
+    filas = cursor.execute('''
+        SELECT id_cliente, nombre, contacto, email, empresa FROM Cliente
+    ''')
+    lista_ids, lista_nombres, lista_contacto, lista_email, lista_empresa = [], [], [], [], []
+    for fila in filas:
+        lista_ids.append(fila[0])
+        lista_nombres.append(fila[1])
+        lista_contacto.append(fila[2])
+        lista_email.append(fila[3])
+        lista_empresa.append(fila[4])
+
+    df = pd.DataFrame({
+        "Id": lista_ids,
+        "Nombre": lista_nombres,
+        "Contacto": lista_contacto,
+        "Email": lista_email,
+        "Empresa": lista_empresa
+    })
+    st.dataframe(df)
+
+    with st.expander("Agregar nuevo cliente"):
+        with st.form("form_nuevo_cliente"):
+            nombre = st.text_input("Nombre")
+            contacto = st.text_input("Contacto")
+            email = st.text_input("Email")
+            empresa = st.text_input("Empresa")
+            submit = st.form_submit_button("Agregar")
+
+            if submit:
+                if nombre and contacto and email and empresa:
+                    cursor.execute(
+                        "INSERT INTO Cliente (nombre, contacto, email, empresa) VALUES (?, ?, ?, ?)",
+                        (nombre, contacto, email, empresa)
+                    )
+                    conexion.commit()
+                    st.success("Cliente agregado correctamente.")
+                    st.experimental_rerun()
+                else:
+                    st.warning("Todos los campos son obligatorios.")
+
+    with st.expander("Eliminar cliente"):
+        with st.form("form_eliminar_cliente"):
+            cliente_a_borrar = st.selectbox("Seleccionar cliente a eliminar", lista_nombres)
+            submit = st.form_submit_button("Eliminar")
+            if submit:
+                cliente_id = lista_ids[lista_nombres.index(cliente_a_borrar)]
+                cursor.execute("DELETE FROM Cliente WHERE id_cliente = ?", (cliente_id,))
+                conexion.commit()
+                st.success("Cliente eliminado correctamente.")
+                st.experimental_rerun()
+
+    with st.expander("Modificar cliente"):
+        with st.form("form_modificar_cliente"):
+            cliente_a_modificar = st.selectbox("Seleccionar cliente a modificar", lista_nombres,
+                                               key="modificar_cliente")
+
+            if cliente_a_modificar:
+                idx = lista_nombres.index(cliente_a_modificar)
+                cliente_id = lista_ids[idx]
+
+                nuevo_nombre = st.text_input("Nuevo nombre", value=lista_nombres[idx])
+                nuevo_contacto = st.text_input("Nuevo contacto", value=lista_contacto[idx])
+                nuevo_email = st.text_input("Nuevo email", value=lista_email[idx])
+                nueva_empresa = st.text_input("Nueva empresa", value=lista_empresa[idx])
+
+                submit = st.form_submit_button("Modificar")
+
+                if submit:
+                    if nuevo_nombre and nuevo_contacto and nuevo_email and nueva_empresa:
+                        cursor.execute('''
+                            UPDATE Cliente 
+                            SET nombre = ?, contacto = ?, email = ?, empresa = ?
+                            WHERE id_cliente = ?
+                        ''', (nuevo_nombre, nuevo_contacto, nuevo_email, nueva_empresa, cliente_id))
+                        conexion.commit()
+                        st.success("Cliente modificado correctamente.")
+                        st.experimental_rerun()
+                    else:
+                        st.warning("Todos los campos son obligatorios.")
+
+elif opcion == "Ventas":
+    filas = cursor.execute('''
+        SELECT v.rowid, c.nombre AS cliente, e.nombre_cientifico AS especie, v.cantidad_de_arboles
+        FROM venta v
+        JOIN cliente c ON v.id_cliente = c.id_cliente
+        JOIN especie e ON v.id_especie = e.id_especie
+    ''')
+
+    lista_ids, lista_clientes, lista_especies, lista_cantidades = [], [], [], []
+    for fila in filas:
+        lista_ids.append(fila[0])
+        lista_clientes.append(fila[1])
+        lista_especies.append(fila[2])
+        lista_cantidades.append(fila[3])
+
+    df = pd.DataFrame({
+        "ID Interno": lista_ids,
+        "Cliente": lista_clientes,
+        "Especie": lista_especies,
+        "Cantidad de árboles": lista_cantidades
+    })
+    st.dataframe(df)
+
+    cursor.execute("SELECT id_cliente, nombre FROM cliente")
+    clientes_data = cursor.fetchall()
+    clientes_nombres = [c[1] for c in clientes_data]
+    clientes_ids = [c[0] for c in clientes_data]
+
+    cursor.execute("SELECT id_especie, nombre_cientifico FROM especie")
+    especies_data = cursor.fetchall()
+    especies_nombres = [e[1] for e in especies_data]
+    especies_ids = [e[0] for e in especies_data]
+
+    with st.expander("Añadir una nueva venta"):
+        with st.form("form_nueva_venta"):
+            cliente_sel = st.selectbox("Seleccionar cliente", clientes_nombres)
+            especie_sel = st.selectbox("Seleccionar especie", especies_nombres)
+            cantidad = st.number_input("Cantidad de árboles", min_value=1, step=1)
+            submit = st.form_submit_button("Agregar")
+
+            if submit:
+                id_cliente = clientes_ids[clientes_nombres.index(cliente_sel)]
+                id_especie = especies_ids[especies_nombres.index(especie_sel)]
+                cursor.execute(
+                    "INSERT INTO venta (id_cliente, id_especie, cantidad_de_arboles) VALUES (?, ?, ?)",
+                    (id_cliente, id_especie, cantidad)
+                )
+                conexion.commit()
+                st.success("Venta registrada correctamente.")
+                st.experimental_rerun()
+
+    with st.expander("Eliminar venta"):
+        with st.form("form_eliminar_venta"):
+            venta_a_borrar = st.selectbox("Seleccionar ID de venta a eliminar", lista_ids)
+            submit = st.form_submit_button("Eliminar")
+            if submit:
+                cursor.execute("DELETE FROM venta WHERE rowid = ?", (venta_a_borrar,))
+                conexion.commit()
+                st.success("Venta eliminada correctamente.")
+                st.experimental_rerun()
+
+            cliente_sel = st.selectbox("Seleccionar cliente", clientes_nombres)
+            especie_sel = st.selectbox("Seleccionar especie", especies_nombres)
+            cantidad = st.number_input("Cantidad de árboles", min_value=1, step=1)
+            submit = st.form_submit_button("Agregar")
+
+            if submit:
+                id_cliente = clientes_ids[clientes_nombres.index(cliente_sel)]
+                id_especie = especies_ids[especies_nombres.index(especie_sel)]
+                cursor.execute(
+                    "INSERT INTO venta (id_cliente, id_especie, cantidad_de_arboles) VALUES (?, ?, ?)",
+                    (id_cliente, id_especie, cantidad)
+                )
+                conexion.commit()
+                st.success("Venta registrada correctamente.")
+                st.experimental_rerun()
+
+    with st.expander("Modificar venta"):
+        with st.form("form_modificar_venta"):
+            venta_a_modificar = st.selectbox("Seleccionar ID de venta a modificar", lista_ids, key="modificar_venta")
+
+            if venta_a_modificar:
+                idx = lista_ids.index(venta_a_modificar)
+                cliente_actual = lista_clientes[idx]  # solo informativo, no editable
+                especie_actual = lista_especies[idx]
+                cantidad_actual = lista_cantidades[idx]
+
+                st.write(f"Cliente: {cliente_actual} (no es editable)")
+
+                nueva_especie = st.selectbox("Nueva especie", especies_nombres,
+                                             index=especies_nombres.index(especie_actual))
+                nueva_cantidad = st.number_input("Nueva cantidad de árboles", min_value=1, step=1,
+                                                 value=cantidad_actual)
+
+                submit = st.form_submit_button("Modificar")
+
+                if submit:
+                    nuevo_id_especie = especies_ids[especies_nombres.index(nueva_especie)]
+                    cursor.execute('''
+                        UPDATE venta
+                        SET id_especie = ?, cantidad_de_arboles = ?
+                        WHERE rowid = ?
+                    ''', (nuevo_id_especie, nueva_cantidad, venta_a_modificar))
+                    conexion.commit()
+                    st.success("Venta modificada correctamente.")
+                    st.experimental_rerun()
+
+
+
