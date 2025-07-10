@@ -1,4 +1,7 @@
 \Users\Usuario\PyCharmMiscProject\script.py 
+nicolasmendieta1-/
+├── script.py
+├── requirements.txt
 
 conexion = sqlite3.connect('proyecto programacion.db')
 cursor = conexion.cursor()
